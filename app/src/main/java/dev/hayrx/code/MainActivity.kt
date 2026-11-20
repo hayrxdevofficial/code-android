@@ -19,6 +19,8 @@ import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.documentfile.provider.DocumentFile
+import com.chaquo.python.Python
+import com.chaquo.python.android.AndroidPlatform
 
 class MainActivity : ComponentActivity() {
     private val bg = Color.rgb(30, 30, 30)
@@ -48,6 +50,7 @@ class MainActivity : ComponentActivity() {
     private lateinit var terminalPanel: LinearLayout
     private lateinit var root: LinearLayout
     private var terminalVisible = true
+    private var pythonRunInProgress = false
 
     private val chooseWorkspace = registerForActivityResult(ActivityResultContracts.OpenDocumentTree()) { uri ->
         if (uri != null) {
@@ -559,11 +562,45 @@ class MainActivity : ComponentActivity() {
         val name = active()?.name ?: ""
         when {
             name.endsWith(".html", true) || name.endsWith(".htm", true) -> showHtmlPreview()
-            name.endsWith(".py", true) -> log("Python runtime is not connected yet. The editor and workspace are ready for runtime integration.")
+            name.endsWith(".py", true) -> runPythonCode()
             name.endsWith(".cpp", true) || name.endsWith(".cc", true) || name.endsWith(".c", true) ->
                 log("C/C++ compiler is not connected yet.")
             else -> log("No runner available for this file type.")
         }
+    }
+
+    private fun runPythonCode() {
+        if (pythonRunInProgress) {
+            toast("Python is already running.")
+            return
+        }
+
+        val source = editor.text.toString()
+        val fileName = active()?.name ?: "main.py"
+        pythonRunInProgress = true
+        log("Running $fileName with embedded Python 3.13...")
+
+        Thread {
+            try {
+                if (!Python.isStarted()) {
+                    Python.start(AndroidPlatform(applicationContext))
+                }
+                val result = Python.getInstance()
+                    .getModule("code_runner")
+                    .callAttr("run_code", source, fileName)
+                    .toString()
+
+                runOnUiThread {
+                    pythonRunInProgress = false
+                    log(result.ifBlank { "Python finished successfully (no output)." })
+                }
+            } catch (error: Exception) {
+                runOnUiThread {
+                    pythonRunInProgress = false
+                    log("Python error: ${error.message ?: error.javaClass.simpleName}")
+                }
+            }
+        }.start()
     }
 
     private fun showHtmlPreview() {
