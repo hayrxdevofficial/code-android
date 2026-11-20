@@ -729,6 +729,13 @@ class MainActivity : ComponentActivity() {
                     content.addView(action("Search PyPI") {
                         val name = input.text.toString().trim()
                         if (!name.matches(Regex("[A-Za-z0-9._-]{1,100}"))) toast("Enter a valid package name")
+                        else if (name.equals("tkinter", ignoreCase = true) || name.equals("turtle", ignoreCase = true)) {
+                            result.text = if (name.equals("tkinter", ignoreCase = true)) {
+                                "tkinter is part of Python's standard library, not a PyPI package. It is also unsupported by CODE's Android Python runtime (Chaquopy), because it requires the Tcl/Tk GUI toolkit. It cannot be installed using Pip Installer."
+                            } else {
+                                "turtle is part of Python's standard library, not a PyPI package. CODE's Android Python runtime (Chaquopy) does not support it because it depends on Tk."
+                            }
+                        }
                         else {
                             result.text = "Searching official PyPI..."
                             searchPypi(name) { info, wheel ->
