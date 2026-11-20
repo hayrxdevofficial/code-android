@@ -1,22 +1,29 @@
 # CODE — Android Development Studio
 
-## Current milestone: 0.1.0
+CODE is an Android-first coding IDE designed for phones, tablets and Samsung DeX, with a VS Code-inspired dark interface.
 
-Included:
-- Native Android application shell written in Kotlin.
-- Code editor area and workspace controls.
+## Current milestone: 0.2.0
+
+Implemented in the current starter:
+- Native Android app shell written in Kotlin.
+- VS Code-inspired dark workbench: activity rail, Explorer, editor tab, line-number gutter and status bar.
+- Responsive Explorer width for compact phones and larger tablet / DeX layouts.
 - Import and Save As through Android Storage Access Framework.
-- Starter terminal commands.
-- HTML preview in an in-app WebView with a close button.
+- Basic editor area and terminal panel with built-in demo commands.
+- HTML preview in an in-app WebView with a close control.
+- GitHub Actions workflow for building a debug APK.
 
-Not included yet:
-- Embedded Python interpreter and pip environment.
+Still in development:
+- Persistent multi-file workspace and real folder creation.
+- Syntax highlighting, proper line-number synchronization, code completion and multiple tabs.
+- Embedded Python runtime and package management.
 - C/C++ compiler toolchain.
-- Persistent workspace tree and folder operations.
-- On-device Android SDK/Gradle download and APK builds.
+- Real shell / terminal execution.
+- Android project templates, SDK / Gradle setup and on-device APK builds.
 - HTML-to-APK packaging.
+
+The terminal currently displays IDE messages; it is not yet a general-purpose shell. Python and C/C++ execution are not enabled in this milestone.
 
 ## Build
 
-Open in Android Studio, install Android SDK 35 and JDK 17, then build the app module.
-The GitHub Actions workflow builds a debug APK and uploads it as an artifact.
+Open the project in Android Studio, install Android SDK 35 and JDK 17, then build the app module. The GitHub Actions workflow builds a debug APK and uploads it as an artifact.
