@@ -1,6 +1,6 @@
 package dev.hayrx.code
 
-import android.app.Activity
+import androidx.activity.ComponentActivity
 import android.app.AlertDialog
 import android.content.Intent
 import android.graphics.Color
@@ -16,9 +16,8 @@ import android.widget.EditText
 import android.widget.HorizontalScrollView
 import android.widget.LinearLayout
 import android.widget.TextView
-import android.widget.Toast
 
-class MainActivity : Activity() {
+class MainActivity : ComponentActivity() {
     private val bg = Color.rgb(15, 18, 25)
     private val panel = Color.rgb(24, 29, 39)
     private val accent = Color.rgb(92, 150, 255)
