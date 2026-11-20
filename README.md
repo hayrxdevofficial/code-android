@@ -2,7 +2,7 @@
 
 CODE is an Android-first coding IDE designed for phones, tablets and Samsung DeX, with a VS Code-inspired dark interface.
 
-## Current milestone: 0.3.0
+## Current milestone: 0.4.0
 
 Implemented:
 - Native Android application written in Kotlin.
@@ -19,12 +19,13 @@ Implemented:
 - Basic in-file text search.
 - HTML preview in an in-app WebView.
 - Basic IDE commands: help, clear, pwd, ls, whoami and version.
+- Embedded Python 3.13 runtime using Chaquopy; run the active `.py` file inside the IDE and display captured output/errors in the terminal panel.
 - GitHub Actions workflow for a debug APK build.
 
 ## Not yet implemented
 
 These are still planned modules, not working features yet:
-- Python interpreter/runtime and pip-compatible project package environment.
+- Project-specific Python package manager and editable requirements installation.
 - C/C++ compiler toolchain and runtime.
 - Real operating-system shell / terminal execution.
 - Full syntax highlighting, code completion, diagnostics and advanced editor features.
@@ -32,7 +33,7 @@ These are still planned modules, not working features yet:
 - HTML-to-APK project packaging.
 - Git integration.
 
-The terminal is currently an IDE command panel, not a general-purpose shell. Python and C/C++ Run actions report that their runtimes are not connected. The Android Project button is informational and does not claim to build an APK.
+The terminal is currently an IDE output/command panel, not a general-purpose shell. C/C++ Run is not connected yet. Python runs through the embedded Chaquopy runtime; third-party package installation is not yet exposed in the IDE. The Android Project button is informational and does not claim to build an APK.
 
 ## Build
 
