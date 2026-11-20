@@ -37,4 +37,4 @@ The terminal is currently an IDE output/command panel, not a general-purpose she
 
 ## Build
 
-Open the project in Android Studio, install Android SDK 35 and JDK 17, then build the app module. GitHub Actions builds a debug APK and uploads it as an artifact when the workflow succeeds.
+Open the project in Android Studio, install Android SDK 35, JDK 17 and Python 3.13, then build the app module. GitHub Actions builds a debug APK and uploads it as an artifact when the workflow succeeds.

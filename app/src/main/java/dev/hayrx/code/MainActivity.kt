@@ -271,7 +271,7 @@ class MainActivity : ComponentActivity() {
             minLines = 2
             maxLines = 4
             isSingleLine = false
-            setText("CODE terminal  •  0.3\n> Ready")
+            setText("CODE terminal  •  0.4\n> Ready")
             isFocusable = false
             isFocusableInTouchMode = false
         }
@@ -553,7 +553,7 @@ class MainActivity : ComponentActivity() {
             "pwd" -> log(workspace?.uri?.toString() ?: "No workspace open")
             "ls" -> log(workspace?.listFiles()?.joinToString("  ") { it.name ?: "?" } ?: "No workspace open")
             "whoami" -> log("code-user")
-            "version" -> log("CODE 0.3.0")
+            "version" -> log("CODE 0.4.0")
             else -> log("This is the IDE command panel, not a system shell. Command not found.")
         }
     }
