@@ -3,6 +3,12 @@
 import contextlib
 import io
 import traceback
+import sys
+
+
+def add_package_path(path: str) -> None:
+    if path not in sys.path:
+        sys.path.insert(0, path)
 
 
 def run_code(source: str, filename: str = "main.py") -> str:

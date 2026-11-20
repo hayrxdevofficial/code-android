@@ -17,6 +17,13 @@ import android.widget.LinearLayout
 import android.widget.ScrollView
 import android.widget.TextView
 import android.widget.Toast
+import org.json.JSONObject
+import java.io.File
+import java.io.FileOutputStream
+import java.net.HttpURLConnection
+import java.net.URL
+import java.net.URLEncoder
+import java.util.zip.ZipInputStream
 import androidx.activity.ComponentActivity
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.documentfile.provider.DocumentFile
@@ -253,6 +260,7 @@ class MainActivity : ComponentActivity() {
         tools.addView(action("HTML Preview") { showHtmlPreview() })
         tools.addView(action("Android Project") { showAndroidProjectInfo() })
         tools.addView(action("Terminal") { toggleTerminal() })
+        tools.addView(action("Installer / APK") { showToolsHub("Installer") })
         toolScroll.addView(tools)
         editorColumn.addView(toolScroll)
         body.addView(editorColumn)
@@ -616,8 +624,9 @@ class MainActivity : ComponentActivity() {
                 if (!Python.isStarted()) {
                     Python.start(AndroidPlatform(applicationContext))
                 }
-                val result = Python.getInstance()
-                    .getModule("code_runner")
+                val py = Python.getInstance()
+                py.getModule("code_runner").callAttr("add_package_path", File(filesDir, "python-packages").absolutePath)
+                val result = py.getModule("code_runner")
                     .callAttr("run_code", source, fileName)
                     .toString()
 
@@ -648,6 +657,186 @@ class MainActivity : ComponentActivity() {
         }, LinearLayout.LayoutParams(-1, 48))
         preview.addView(web, LinearLayout.LayoutParams(-1, 0, 1f))
         setContentView(preview)
+    }
+
+
+    private fun showToolsHub(initialTab: String = "Installer") {
+        val page = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setBackgroundColor(bg) }
+        val header = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL; gravity = Gravity.CENTER_VERTICAL
+            setPadding(12, 0, 8, 0); setBackgroundColor(Color.rgb(45, 45, 45))
+        }
+        header.addView(text("CODE / TOOLS", 17f, true), LinearLayout.LayoutParams(0, 54, 1f))
+        header.addView(action("← Editor") { setContentView(root) })
+        page.addView(header)
+        val tabsBar = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL; setBackgroundColor(panel) }
+        val scroll = ScrollView(this).apply { isFillViewport = true }
+        val content = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setPadding(14, 14, 14, 24) }
+        scroll.addView(content)
+        page.addView(tabsBar)
+        page.addView(scroll, LinearLayout.LayoutParams(-1, 0, 1f))
+        fun para(value: String, size: Float = 13f, color: Int = fg) =
+            text(value, size, false).apply { setTextColor(color); setPadding(2, 7, 2, 7) }
+        fun heading(value: String) = text(value, 19f, true).apply { setPadding(2, 10, 2, 6) }
+        fun card(title: String, description: String, buttonText: String, click: () -> Unit) {
+            val box = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setPadding(14, 8, 14, 10); setBackgroundColor(panel) }
+            box.addView(text(title, 15f, true))
+            box.addView(para(description, 12f, muted))
+            box.addView(action(buttonText, click).apply { setBackgroundColor(Color.rgb(45, 90, 130)); setTextColor(Color.WHITE) },
+                LinearLayout.LayoutParams(-1, 44))
+            content.addView(box, LinearLayout.LayoutParams(-1, -2).apply { bottomMargin = dp(10) })
+        }
+        fun openUrl(url: String) {
+            try { startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url))) }
+            catch (_: Exception) { toast("Cannot open link") }
+        }
+        fun showTab(tab: String) {
+            content.removeAllViews()
+            tabsBar.removeAllViews()
+            listOf("Installer", "Pip Installer", "APK", "Android SDK Compiler").forEach { name ->
+                tabsBar.addView(action(name) { showTab(name) }.apply {
+                    textSize = 10f; setPadding(7, 12, 7, 12)
+                    setBackgroundColor(if (name == tab) blue else panel)
+                }, LinearLayout.LayoutParams(0, 48, 1f))
+            }
+            when (tab) {
+                "Installer" -> {
+                    content.addView(heading("Installer"))
+                    content.addView(para("Runtime and developer tool manager. CODE separates built-in tools from components that still need a supported installer.", 13f, muted))
+                    card("Python 3.13 • Built in", "CODE already includes embedded Python 3.13 through Chaquopy. No separate Python download is needed to run Python files.", "Check Python runtime") {
+                        log("Embedded Python 3.13 runtime is ready"); toast("Python 3.13 is ready")
+                    }
+                    card("Android SDK / Build Tools", "A full Android SDK is a desktop developer toolchain. This opens official downloads; installing a complete SDK on this phone is not supported yet.", "Official Android SDK") {
+                        openUrl("https://developer.android.com/studio")
+                    }
+                    card("C++ compiler / Android NDK", "The official Android NDK provides the Clang C/C++ toolchain. CODE does not yet install or invoke it on-device.", "Official Android NDK") {
+                        openUrl("https://developer.android.com/ndk")
+                    }
+                    card("Python official downloads", "Official Python releases. CODE's embedded Python remains its current runtime.", "Open python.org") {
+                        openUrl("https://www.python.org/downloads/")
+                    }
+                }
+                "Pip Installer" -> {
+                    content.addView(heading("Pip Installer"))
+                    content.addView(para("Search the official PyPI index and install universal pure-Python wheels into CODE's private package directory. Native extensions and packages without a none-any wheel are not supported yet.", 13f, muted))
+                    val input = EditText(this).apply {
+                        hint = "Package name, e.g. requests"; setTextColor(fg); setHintTextColor(muted)
+                        textSize = 14f; setSingleLine(true); setPadding(12, 8, 12, 8); setBackgroundColor(panel)
+                    }
+                    content.addView(input, LinearLayout.LayoutParams(-1, 52))
+                    val result = para("Ready to search PyPI.", 12f, muted)
+                    content.addView(result)
+                    content.addView(action("Search PyPI") {
+                        val name = input.text.toString().trim()
+                        if (!name.matches(Regex("[A-Za-z0-9._-]{1,100}"))) toast("Enter a valid package name")
+                        else {
+                            result.text = "Searching official PyPI..."
+                            searchPypi(name) { info, wheel ->
+                                result.text = info
+                                if (wheel != null) content.addView(action("Download and Install") {
+                                    installPurePythonWheel(name, wheel) { message -> result.text = message }
+                                }.apply { setBackgroundColor(blue); setTextColor(Color.WHITE) },
+                                    LinearLayout.LayoutParams(-1, 48))
+                            }
+                        }
+                    }.apply { setBackgroundColor(blue); setTextColor(Color.WHITE) }, LinearLayout.LayoutParams(-1, 48))
+                    content.addView(para("Packages are downloaded from pypi.org. Only universal pure-Python wheels are accepted in this first version.", 11f, muted))
+                }
+                "APK" -> {
+                    content.addView(heading("APK Builder"))
+                    content.addView(para("The CODE app currently builds its debug APK in GitHub Actions. On-device Gradle builds and project-to-APK packaging are not implemented yet.", 13f, muted))
+                    card("Download CODE APK", "Open Actions, select the latest successful Build CODE debug APK run and download the CODE-debug artifact.", "Open APK builds") {
+                        openUrl("https://github.com/hayrxdevofficial/code-android/actions")
+                    }
+                    card("Project → APK", "The planned packager will bundle Python source, HTML, CSS, JavaScript and assets into one Android APK.", "Packaging status") {
+                        toast("Project-to-APK packaging is planned, not available yet.")
+                    }
+                }
+                else -> {
+                    content.addView(heading("Android SDK Compiler"))
+                    content.addView(para("This module will manage SDK Platforms, Build Tools, Platform Tools and NDK, then connect them to a project compiler. The full SDK is not installed on this device by this page.", 13f, muted))
+                    card("Android SDK Manager", "Official Android Studio and SDK Manager downloads for supported desktop environments.", "Official SDK page") {
+                        openUrl("https://developer.android.com/studio")
+                    }
+                    card("SDK command-line tools", "Official sdkmanager documentation and SDK package management reference.", "SDK Manager docs") {
+                        openUrl("https://developer.android.com/tools/sdkmanager")
+                    }
+                    card("C++ NDK / Clang", "Official Android NDK documentation for native C and C++ builds.", "NDK guide") {
+                        openUrl("https://developer.android.com/ndk/guides")
+                    }
+                }
+            }
+        }
+        showTab(initialTab)
+        setContentView(page)
+    }
+
+    private fun searchPypi(packageName: String, callback: (String, String?) -> Unit) {
+        Thread {
+            try {
+                val safeName = URLEncoder.encode(packageName, "UTF-8")
+                val connection = URL("https://pypi.org/pypi/" + safeName + "/json").openConnection() as HttpURLConnection
+                connection.connectTimeout = 12000; connection.readTimeout = 12000
+                connection.setRequestProperty("User-Agent", "CODE-Android-IDE/0.5")
+                val json = connection.inputStream.bufferedReader().use { it.readText() }
+                connection.disconnect()
+                val rootJson = JSONObject(json)
+                val info = rootJson.getJSONObject("info")
+                val urls = rootJson.getJSONArray("urls")
+                var wheel: String? = null
+                for (i in 0 until urls.length()) {
+                    val item = urls.getJSONObject(i)
+                    val filename = item.optString("filename")
+                    if (filename.endsWith(".whl") && filename.contains("none-any")) {
+                        wheel = item.optString("url"); break
+                    }
+                }
+                val message = info.optString("name") + "  " + info.optString("version") + "\n" +
+                    info.optString("summary") + "\n" +
+                    if (wheel != null) "Universal pure-Python wheel found." else "No universal wheel found; native/source packages are not supported yet."
+                runOnUiThread { callback(message, wheel) }
+            } catch (e: Exception) {
+                runOnUiThread { callback("PyPI search failed: " + (e.message ?: "network error"), null) }
+            }
+        }.start()
+    }
+
+    private fun installPurePythonWheel(packageName: String, wheelUrl: String, callback: (String) -> Unit) {
+        Thread {
+            try {
+                val root = File(filesDir, "python-packages").apply { mkdirs() }
+                val target = File(root, packageName.lowercase().replace(Regex("[^a-z0-9_.-]"), "_"))
+                target.mkdirs()
+                val connection = URL(wheelUrl).openConnection() as HttpURLConnection
+                connection.connectTimeout = 15000; connection.readTimeout = 30000
+                connection.setRequestProperty("User-Agent", "CODE-Android-IDE/0.5")
+                val temp = File(cacheDir, "package-" + System.currentTimeMillis() + ".whl")
+                connection.inputStream.use { input -> temp.outputStream().use { output -> input.copyTo(output) } }
+                connection.disconnect()
+                val safeRoot = target.canonicalPath + File.separator
+                ZipInputStream(temp.inputStream().buffered()).use { zip ->
+                    var entry = zip.nextEntry
+                    while (entry != null) {
+                        val out = File(target, entry.name)
+                        if (!out.canonicalPath.startsWith(safeRoot)) throw SecurityException("Unsafe archive path")
+                        if (entry.isDirectory) out.mkdirs()
+                        else {
+                            out.parentFile?.mkdirs()
+                            FileOutputStream(out).use { output -> zip.copyTo(output) }
+                        }
+                        zip.closeEntry()
+                        entry = zip.nextEntry
+                    }
+                }
+                temp.delete()
+                runOnUiThread {
+                    callback("Installed " + packageName + ". Run Python again to load the package.")
+                    log("Pip Installer installed " + packageName)
+                }
+            } catch (e: Exception) {
+                runOnUiThread { callback("Install failed: " + (e.message ?: "unknown error")) }
+            }
+        }.start()
     }
 
     private fun showAndroidProjectInfo() {
