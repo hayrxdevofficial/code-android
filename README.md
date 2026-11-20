@@ -2,28 +2,38 @@
 
 CODE is an Android-first coding IDE designed for phones, tablets and Samsung DeX, with a VS Code-inspired dark interface.
 
-## Current milestone: 0.2.0
+## Current milestone: 0.3.0
 
-Implemented in the current starter:
-- Native Android app shell written in Kotlin.
-- VS Code-inspired dark workbench: activity rail, Explorer, editor tab, line-number gutter and status bar.
-- Responsive Explorer width for compact phones and larger tablet / DeX layouts.
-- Import and Save As through Android Storage Access Framework.
-- Basic editor area and terminal panel with built-in demo commands.
-- HTML preview in an in-app WebView with a close control.
-- GitHub Actions workflow for building a debug APK.
+Implemented:
+- Native Android application written in Kotlin.
+- VS Code-inspired workbench with activity rail, Explorer, editor, tabs, terminal panel and status bar.
+- Responsive Explorer sizing for phones and larger screens.
+- Open a workspace folder using Android's Storage Access Framework.
+- Persist workspace folder permission and restore the selected workspace after restarting the app.
+- Browse real folders and files; expand/collapse folders in the Explorer.
+- Create real files and folders inside the selected workspace.
+- Import files into the workspace, or open them directly when no workspace is selected.
+- Open multiple files in editor tabs and switch between them.
+- Track unsaved edits and save files back to their original URI; Save As is available for new files.
+- Dynamic line-number gutter based on the current document.
+- Basic in-file text search.
+- HTML preview in an in-app WebView.
+- Basic IDE commands: help, clear, pwd, ls, whoami and version.
+- GitHub Actions workflow for a debug APK build.
 
-Still in development:
-- Persistent multi-file workspace and real folder creation.
-- Syntax highlighting, proper line-number synchronization, code completion and multiple tabs.
-- Embedded Python runtime and package management.
-- C/C++ compiler toolchain.
-- Real shell / terminal execution.
-- Android project templates, SDK / Gradle setup and on-device APK builds.
-- HTML-to-APK packaging.
+## Not yet implemented
 
-The terminal currently displays IDE messages; it is not yet a general-purpose shell. Python and C/C++ execution are not enabled in this milestone.
+These are still planned modules, not working features yet:
+- Python interpreter/runtime and pip-compatible project package environment.
+- C/C++ compiler toolchain and runtime.
+- Real operating-system shell / terminal execution.
+- Full syntax highlighting, code completion, diagnostics and advanced editor features.
+- Android project templates, SDK/Gradle package manager and on-device APK builds.
+- HTML-to-APK project packaging.
+- Git integration.
+
+The terminal is currently an IDE command panel, not a general-purpose shell. Python and C/C++ Run actions report that their runtimes are not connected. The Android Project button is informational and does not claim to build an APK.
 
 ## Build
 
-Open the project in Android Studio, install Android SDK 35 and JDK 17, then build the app module. The GitHub Actions workflow builds a debug APK and uploads it as an artifact.
+Open the project in Android Studio, install Android SDK 35 and JDK 17, then build the app module. GitHub Actions builds a debug APK and uploads it as an artifact when the workflow succeeds.
