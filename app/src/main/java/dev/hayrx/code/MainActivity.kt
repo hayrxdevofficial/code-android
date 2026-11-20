@@ -283,7 +283,7 @@ class MainActivity : ComponentActivity() {
             setHintTextColor(muted)
             textSize = 12f
             typeface = Typeface.MONOSPACE
-            singleLine = true
+            setSingleLine(true)
             setPadding(8, 4, 8, 4)
         }
         commandRow.addView(command, LinearLayout.LayoutParams(0, 42, 1f))
