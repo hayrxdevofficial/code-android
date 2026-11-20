@@ -1,6 +1,7 @@
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
+    id("com.chaquo.python")
 }
 
 android {
@@ -11,8 +12,12 @@ android {
         applicationId = "dev.hayrx.code"
         minSdk = 26
         targetSdk = 35
-        versionCode = 3
-        versionName = "0.3.0"
+
+        ndk {
+            abiFilters += listOf("arm64-v8a", "x86_64")
+        }
+        versionCode = 4
+        versionName = "0.4.0"
     }
 
     compileOptions {
@@ -28,4 +33,11 @@ android {
 dependencies {
     implementation("androidx.activity:activity-ktx:1.10.0")
     implementation("androidx.documentfile:documentfile:1.0.1")
+}
+
+
+chaquopy {
+    defaultConfig {
+        version = "3.13"
+    }
 }
