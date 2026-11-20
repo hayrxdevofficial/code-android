@@ -7,6 +7,7 @@ import android.graphics.Typeface
 import android.net.Uri
 import android.os.Bundle
 import android.view.Gravity
+import android.view.MotionEvent
 import android.view.View
 import android.webkit.WebView
 import android.webkit.WebViewClient
@@ -41,6 +42,7 @@ class MainActivity : ComponentActivity() {
 
     private lateinit var editor: EditText
     private lateinit var terminal: EditText
+    private lateinit var terminalOutputParams: LinearLayout.LayoutParams
     private lateinit var fileTree: LinearLayout
     private lateinit var tabStrip: LinearLayout
     private lateinit var lineNumbers: TextView
@@ -50,6 +52,8 @@ class MainActivity : ComponentActivity() {
     private lateinit var terminalPanel: LinearLayout
     private lateinit var root: LinearLayout
     private var terminalVisible = true
+    private var terminalDragStartY = 0f
+    private var terminalDragStartHeight = 0
     private var pythonRunInProgress = false
 
     private val chooseWorkspace = registerForActivityResult(ActivityResultContracts.OpenDocumentTree()) { uri ->
@@ -143,17 +147,17 @@ class MainActivity : ComponentActivity() {
 
     private fun buildInterface() {
         val widthDp = resources.displayMetrics.widthPixels / resources.displayMetrics.density
-        val explorerWidth = if (widthDp >= 600) 220 else 132
+        val explorerWidth = if (widthDp >= 600) 260 else 176
         root = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setBackgroundColor(bg) }
 
         val titleBar = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER_VERTICAL
-            setPadding(10, 0, 6, 0)
+            setPadding(14, 0, 10, 0)
             setBackgroundColor(Color.rgb(45, 45, 45))
         }
         titleBar.addView(text("CODE", 17f, true).apply { setTextColor(Color.rgb(80, 160, 220)) },
-            LinearLayout.LayoutParams(0, 44, 1f))
+            LinearLayout.LayoutParams(0, 52, 1f))
         titleBar.addView(action("Open") { importFile.launch(arrayOf("*/*")) })
         titleBar.addView(action("Save") { saveFile() })
         titleBar.addView(action("Run ▶") { runCode() })
@@ -171,7 +175,7 @@ class MainActivity : ComponentActivity() {
         activityRail.addView(railIcon("▤", "Explorer") { toggleExplorer() })
         activityRail.addView(railIcon("⌕", "Search") { showSearch() })
         activityRail.addView(railIcon("⑂", "Source Control") { toast("Git integration is planned next.") })
-        body.addView(activityRail, LinearLayout.LayoutParams(42, -1))
+        body.addView(activityRail, LinearLayout.LayoutParams(50, -1))
 
         explorer = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
@@ -208,10 +212,10 @@ class MainActivity : ComponentActivity() {
         val editArea = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL; setBackgroundColor(bg) }
         lineNumbers = TextView(this).apply {
             setTextColor(Color.rgb(100, 100, 100))
-            textSize = 13f
+            textSize = 15f
             typeface = Typeface.MONOSPACE
             gravity = Gravity.TOP or Gravity.END
-            setPadding(8, 12, 10, 12)
+            setPadding(10, 14, 12, 14)
             setBackgroundColor(bg)
             text = "1"
         }
@@ -220,10 +224,10 @@ class MainActivity : ComponentActivity() {
             setTextColor(fg)
             setHintTextColor(muted)
             hint = "// Start writing code..."
-            textSize = 13.5f
+            textSize = if (widthDp >= 600) 17f else 15.5f
             typeface = Typeface.MONOSPACE
             gravity = Gravity.TOP or Gravity.START
-            setPadding(4, 12, 12, 12)
+            setPadding(6, 14, 14, 14)
             setBackgroundColor(bg)
             setSingleLine(false)
             setHorizontallyScrolling(true)
@@ -264,18 +268,19 @@ class MainActivity : ComponentActivity() {
             setTextColor(Color.rgb(205, 205, 205))
             setHintTextColor(muted)
             hint = "Terminal output"
-            textSize = 12f
+            textSize = 14f
             typeface = Typeface.MONOSPACE
-            setPadding(12, 6, 12, 6)
+            setPadding(14, 10, 14, 10)
             setBackgroundColor(terminalBg)
-            minLines = 2
-            maxLines = 4
+            minLines = 4
+            maxLines = 12
             isSingleLine = false
             setText("CODE terminal  •  0.4\n> Ready")
             isFocusable = false
             isFocusableInTouchMode = false
         }
-        terminalPanel.addView(terminal, LinearLayout.LayoutParams(-1, 92))
+        terminalOutputParams = LinearLayout.LayoutParams(-1, dp(180))
+        terminalPanel.addView(terminal, terminalOutputParams)
         val commandRow = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL; setPadding(8, 0, 8, 4); setBackgroundColor(terminalBg) }
         val command = EditText(this).apply {
             hint = "IDE command (help)"
@@ -292,15 +297,41 @@ class MainActivity : ComponentActivity() {
             if (value.isNotEmpty()) { handleCommand(value); command.setText("") }
         })
         terminalPanel.addView(commandRow)
+        val resizeHandle = View(this).apply {
+            setBackgroundColor(Color.rgb(65, 65, 65))
+            contentDescription = "Drag to resize terminal"
+            setOnTouchListener { _, event ->
+                when (event.action) {
+                    MotionEvent.ACTION_DOWN -> {
+                        terminalDragStartY = event.rawY
+                        terminalDragStartHeight = terminalOutputParams.height
+                        true
+                    }
+                    MotionEvent.ACTION_MOVE -> {
+                        val maxHeight = (resources.displayMetrics.heightPixels / resources.displayMetrics.density * 0.48f).toInt()
+                        val next = (terminalDragStartHeight - (event.rawY - terminalDragStartY).toInt())
+                            .coerceIn(dp(120), maxHeight.coerceAtLeast(dp(160)))
+                        terminalOutputParams.height = next
+                        terminal.layoutParams = terminalOutputParams
+                        true
+                    }
+                    MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> true
+                    else -> true
+                }
+            }
+        }
+        root.addView(resizeHandle, LinearLayout.LayoutParams(-1, dp(8)))
         root.addView(terminalPanel)
         statusText = text("  Python   |   UTF-8   |   CODE", 10f, false).apply {
             setTextColor(Color.WHITE); setBackgroundColor(blue); setPadding(4, 0, 4, 0)
         }
-        root.addView(statusText, LinearLayout.LayoutParams(-1, 22))
+        root.addView(statusText, LinearLayout.LayoutParams(-1, 28))
         setContentView(root)
         renderTabs()
         refreshWorkspace()
     }
+
+    private fun dp(value: Int): Int = (value * resources.displayMetrics.density).toInt()
 
     private fun text(value: String, size: Float, bold: Boolean) = TextView(this).apply {
         text = value; textSize = size; setTextColor(fg)
@@ -309,7 +340,7 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun action(title: String, callback: () -> Unit) = text(title, 11f, false).apply {
-        gravity = Gravity.CENTER; setPadding(7, 7, 7, 7)
+        gravity = Gravity.CENTER; setPadding(10, 10, 10, 10)
         isClickable = true; isFocusable = true
         setBackgroundResource(android.R.drawable.list_selector_background)
         setOnClickListener { callback() }
