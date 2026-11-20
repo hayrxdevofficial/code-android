@@ -30,6 +30,7 @@ class MainActivity : ComponentActivity() {
     private lateinit var editor: EditText
     private lateinit var terminal: EditText
     private lateinit var fileLabel: TextView
+    private lateinit var tabLabel: TextView
     private lateinit var statusText: TextView
     private lateinit var explorer: LinearLayout
     private lateinit var terminalPanel: LinearLayout
@@ -149,10 +150,11 @@ class MainActivity : ComponentActivity() {
             orientation = LinearLayout.HORIZONTAL
             setBackgroundColor(panel)
         }
-        tabRow.addView(text("  ●  $currentName   ×  ", 12f, false).apply {
+        tabLabel = text("  ●  $currentName   ×  ", 12f, false).apply {
             setPadding(8, 0, 8, 0)
             setBackgroundColor(bg)
-        }, LinearLayout.LayoutParams(-2, 42))
+        }
+        tabRow.addView(tabLabel, LinearLayout.LayoutParams(-2, 42))
         tabs.addView(tabRow)
         editorColumn.addView(tabs)
 
@@ -292,6 +294,7 @@ class MainActivity : ComponentActivity() {
 
     private fun updateFileHeader() {
         fileLabel.text = "  ◉  $currentName"
+        tabLabel.text = "  ●  $currentName   ×  "
         statusText.text = "  ${languageName(currentName)}   |   UTF-8   |   CODE"
     }
 
